@@ -1,0 +1,9 @@
+# Ignore data files
+data/*.csv
+
+# Ignore Python bytecode files
+*.pyc
+
+# Ignore environment specific files
+.env
+
