@@ -115,31 +115,34 @@ if __name__ == "__main__":
     start_date = "2021-01-01"
     end_date = "2024-06-30"
 
-    ticker = "GME"
+    tickers = ["AAPL", "GME"]
 
-    # Fetch stock data
-    stock_data = fetch_stock_data(ticker, start_date, end_date)
-    print("Raw stock data:")
-    print(stock_data.head())
+    for ticker in tickers:
+        print(f"Processing data for {ticker}...")
 
-    # Preprocess stock data
-    stock_data = preprocess_stock_data(stock_data)
-    print("\nPreprocessed stock data:")
-    print(stock_data.head())
+        # Fetch stock data
+        stock_data = fetch_stock_data(ticker, start_date, end_date)
+        print(f"Raw data ({ticker}):")
+        print(stock_data.head())
 
-    # Fetch options data
-    options_data = fetch_options_data(ticker)
-    print("\nCall Options Data (Raw):")
-    print(options_data.calls.head())
-    print("\nPut Options Data (Raw):")
-    print(options_data.puts.head())
+        # Preprocess stock data
+        stock_data = preprocess_stock_data(stock_data)
+        print(f"\nPre-processed data ({ticker}):")
+        print(stock_data.head())
 
-    # Preprocess options data
-    options_data = preprocess_options_data(options_data)
-    print("\nCall Options Data (Preprocessed):")
-    print(options_data.calls.head())
-    print("\nPut Options Data (Preprocessed):")
-    print(options_data.puts.head())
+        # Fetch options data
+        options_data = fetch_options_data(ticker)
+        print("\nCall options data (raw):")
+        print(options_data.calls.head())
+        print("\nPut options data (raw):")
+        print(options_data.puts.head())
 
-    # Perform exploratory data analysis
-    perform_eda(ticker, stock_data, options_data)
+        # Preprocess options data
+        options_data = preprocess_options_data(options_data)
+        print("\nCall options data (pre-processed):")
+        print(options_data.calls.head())
+        print("\nPut options data (pre-processed):")
+        print(options_data.puts.head())
+
+        # Perform exploratory data analysis
+        perform_eda(ticker, stock_data, options_data)
