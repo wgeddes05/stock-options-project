@@ -4,9 +4,10 @@ import pandas as pd
 import yfinance as yf
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 
 class OptionsData:
@@ -167,7 +168,7 @@ def perform_eda(ticker, stock_data, options_data):
     plt.show()
 
 
-def prepare_datasets(stock_data):
+def split_data(stock_data, test_size=0.2):
     # Define target variable (i.e. if the price will go up or down)
     stock_data["Target"] = (stock_data["Close"].shift(-1) > stock_data["Close"]).astype(
         int
@@ -180,20 +181,26 @@ def prepare_datasets(stock_data):
 
     # Split the dataset into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=test_size, random_state=42
     )
     return X_train, X_test, y_train, y_test
 
 
-def train_model(X_train, y_train):
-    # Train a Random Forest classifier
+def train_classification_model(X_train, y_train):
+    """Start with a Random Forest classifier to predict whether the stock price will go up or down."""
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-
     model.fit(X_train, y_train)
     return model
 
 
-def evaluate_model(model, X_test, y_test):
+def train_regression_model(X_train, y_train):
+    """Use a Random Forest regressor to predict the future stock price."""
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+
+def evaluate_classification_model(model, X_test, y_test):
     # Make predictions on the test set
     y_pred = model.predict(X_test)
 
@@ -204,6 +211,37 @@ def evaluate_model(model, X_test, y_test):
     print("\nClassification report:\n", report)
 
     return accuracy, report
+
+
+def evaluate_regression_model(model, X_test, y_test):
+    # Make predictions on the test set
+    y_pred = model.predict(X_test)
+
+    # Evaluate the model
+    mse = mean_squared_error(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    """print("\nMean Squared Error: ", mse)
+    print("\nMean Absolute Error: ", mae)
+    print("\nR-squared: ", r2)"""
+
+    return mse, mae, r2
+
+
+def tune_regression_hyperparameters(X_train, y_train):
+    param_grid = {
+        "n_estimators": [50, 100, 200, 300],
+        "max_depth": [None, 5, 10, 20, 30],
+        "min_samples_split": [2, 5, 10],
+    }
+
+    model = RandomForestRegressor(random_state=42)
+    grid_search = GridSearchCV(model, param_grid, cv=3, n_jobs=-1, verbose=2)
+    grid_search.fit(X_train, y_train)
+
+    print(f"Best hyperparameters: {grid_search.best_params_}")
+    return grid_search.best_estimator_
 
 
 def analyze_feature_importance(model, X_train):
