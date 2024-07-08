@@ -164,8 +164,26 @@ def evaluate_model(model, X_test, y_test):
     return accuracy, report
 
 
+def analyze_feature_importance(model, X_train):
+    importances = model.feature_importances_
+    feature_names = X_train.columns
+
+    feature_importance_df = pd.DataFrame(
+        {"Feature": feature_names, "Importance": importances}
+    )
+    feature_importance_df = feature_importance_df.sort_values(
+        by="Importance", ascending=False
+    )
+
+    print("\nFeature Importance:\n")
+    print(feature_importance_df)
+
+    return feature_importance_df
+
+
 if __name__ == "__main__":
     os.chdir(r"C:\Users\wgedd\Documents\GitHub\stock-options-project\data")
+    print("Current working directory: ", os.getcwd())
 
     start_date = "2021-01-01"
     end_date = "2024-06-30"
@@ -183,7 +201,7 @@ if __name__ == "__main__":
         # Pre-process stock data
         preprocessed_stock_data = preprocess_stock_data(stock_data)
         path = f"June_30_preprocessed_stock_data_{ticker}.csv"
-        preprocessed_stock_data.to_csv(path, index=True)
+        # preprocessed_stock_data.to_csv(path, index=True)
         print(f"\nPre-processed data ({ticker}):\n")
         print(preprocessed_stock_data.head())
 
@@ -196,14 +214,15 @@ if __name__ == "__main__":
 
         # Pre-process options data
         preprocessed_options_data = preprocess_options_data(options_data)
+
         print("\nCall options data (pre-processed):\n")
         print(preprocessed_options_data.calls.head())
         path = f"June_30_preprocessed_calls_data_{ticker}.csv"
-        preprocessed_options_data.calls.to_csv(path, index=True)
+        # preprocessed_options_data.calls.to_csv(path, index=True)
         print("\nPut options data (pre-processed):\n")
         print(preprocessed_options_data.puts.head())
         path = f"June_30_preprocessed_puts_data_{ticker}.csv"
-        preprocessed_options_data.puts.to_csv(path, index=True)
+        # preprocessed_options_data.puts.to_csv(path, index=True)
 
         # Perform exploratory data analysis
         perform_eda(ticker, preprocessed_stock_data, preprocessed_options_data)
@@ -216,3 +235,6 @@ if __name__ == "__main__":
 
         # Evaluate the model
         accuracy, report = evaluate_model(model, X_test, y_test)
+
+        # Analyze feature importance
+        feature_importance_df = analyze_feature_importance(model, X_train)
