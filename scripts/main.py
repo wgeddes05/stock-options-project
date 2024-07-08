@@ -150,13 +150,13 @@ def preprocess_options_data(options_data):
 
 def perform_eda(ticker, stock_data, options_data):
     # Perform exploratory data analysis
-    print("\nSummary Statistics for Stock Data:")
+    print("\nSummary Statistics for Stock Data:\n")
     print(stock_data.describe())
 
-    print("\nSummary Statistics for Call Options Data:")
+    print("\nSummary Statistics for Call Options Data:\n")
     print(options_data.calls.describe())
 
-    print("\nSummary Statistics for Put Options Data:")
+    print("\nSummary Statistics for Put Options Data:\n")
     print(options_data.puts.describe())
 
     # Visualizations
@@ -200,9 +200,9 @@ def evaluate_model(model, X_test, y_test):
 
     # Evaluate the model
     accuracy = accuracy_score(y_test, y_pred)
-    print("Accuracy: ", accuracy)
+    print("\nAccuracy: ", accuracy)
     report = classification_report(y_test, y_pred)
-    print("Classification report:\n", report)
+    print("\nClassification report:\n", report)
 
     return accuracy, report
 
@@ -218,7 +218,7 @@ def analyze_feature_importance(model, X_train):
         by="Importance", ascending=False
     )
 
-    print("\nFeature Importance:\n")
+    print("\nFeature Importance:")
     print(feature_importance_df)
 
     return feature_importance_df
@@ -226,7 +226,7 @@ def analyze_feature_importance(model, X_train):
 
 if __name__ == "__main__":
     os.chdir(r"C:\Users\wgedd\Documents\GitHub\stock-options-project\data")
-    print("Current working directory: ", os.getcwd())
+    print("\nCurrent working directory: ", os.getcwd())
 
     start_date = "2021-01-01"
     end_date = "2024-06-30"
@@ -234,55 +234,55 @@ if __name__ == "__main__":
     tickers = ["AAPL", "GME"]
 
     for ticker in tickers:
-        print(f"Processing data for {ticker}...\n")
+        print(f"\nProcessing data for {ticker}...\n")
 
-        # Fetch stock data
+        # Fetch stock data:
         stock_data = fetch_stock_data(ticker, start_date, end_date)
-        print(f"Raw data ({ticker}):\n")
+        print(f"\nRaw data ({ticker}):\n")
         print(stock_data.head())
 
-        # Pre-process stock data
+        # Pre-process stock data:
         preprocessed_stock_data = preprocess_stock_data(stock_data)
         print(f"\nPre-processed data ({ticker}):\n")
         print(preprocessed_stock_data.head())
 
-        # Save pre-processed stock data to CSV
+        """# Save pre-processed stock data to CSV:
         path = f"June_30_preprocessed_stock_data_{ticker}.csv"
         preprocessed_stock_data.to_csv(path, index=True)
-        print("Pre-processed stock data saved to CSV.\n")
+        print("Pre-processed stock data saved to CSV.\n")"""
 
-        # Fetch options data
+        # Fetch options data:
         options_data = fetch_options_data(ticker)
         print("\nCall options data (raw):\n")
         print(options_data.calls.head())
         print("\nPut options data (raw):\n")
         print(options_data.puts.head())
 
-        # Pre-process options data
+        # Pre-process options data:
         preprocessed_options_data = preprocess_options_data(options_data)
         print("\nCall options data (pre-processed):\n")
         print(preprocessed_options_data.calls.head())
         print("\nPut options data (pre-processed):\n")
         print(preprocessed_options_data.puts.head())
 
-        # Save pre-processed options data to CSV
+        """# Save pre-processed options data to CSV:
         path = f"June_30_preprocessed_calls_data_{ticker}.csv"
         preprocessed_options_data.calls.to_csv(path, index=True)
         path = f"June_30_preprocessed_puts_data_{ticker}.csv"
         preprocessed_options_data.puts.to_csv(path, index=True)
-        print("Pre-processed options data saved to CSV.\n")
+        print("Pre-processed options data saved to CSV.\n")"""
 
-        # Perform exploratory data analysis
+        # Perform exploratory data analysis:
         perform_eda(ticker, preprocessed_stock_data, preprocessed_options_data)
 
-        # Prepare the datasets
+        # Split the data into training and test sets:
         X_train, X_test, y_train, y_test = prepare_datasets(preprocessed_stock_data)
 
-        # Train the model
+        # Train the model:
         model = train_model(X_train, y_train)
 
-        # Evaluate the model
+        # Evaluate the model:
         accuracy, report = evaluate_model(model, X_test, y_test)
 
-        # Analyze feature importance
+        # Analyze feature importance:
         feature_importance_df = analyze_feature_importance(model, X_train)
