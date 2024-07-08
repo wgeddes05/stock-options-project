@@ -38,23 +38,65 @@ def preprocess_stock_data(stock_data):
     stock_data["RSI"] = ta.RSI(stock_data["Close"].values, timeperiod=14)
 
     # Bollinger bands
-    stock_data["upper_band"], stock_data["middle_band"], stock_data["lower_band"] = (
-        ta.BBANDS(stock_data["Close"], timeperiod=20)
+    bb_indicator = ta.volatility.BollingerBands(stock_data["Close"], window=20)
+    stock_data["upper_band"] = bb_indicator.bollinger_hband()
+    stock_data["middle_band"] = bb_indicator.bollinger_mavg()
+    stock_data["lower_band"] = bb_indicator.bollinger_lband()
+
+    # MACD
+    macd = ta.trend.MACD(
+        stock_data["Close"], window_slow=26, window_fast=12, window_sign=9
     )
+    stock_data["MACD"] = macd.macd()
+    stock_data["MACD_Signal"] = macd.macd_signal()
+    stock_data["MACD_Histogram"] = macd.macd_diff()
+
+    # Stochastic Oscillator
+    stoch = ta.momentum.StochasticOscillator(
+        stock_data["High"], stock_data["Low"], stock_data["Close"], window=14
+    )
+    stock_data["Stoch %K"] = stoch.stoch()
+    stock_data["Stoch %D"] = stoch.stoch_signal()
 
     # Drop remaining missing values
     stock_data = stock_data.dropna()
 
     # Standardize the data features
     scaler = StandardScaler()
-    # stock_data_scaled = scaler.fit_transform(stock_data[["Open", "High", "Low", "Close", "Volume"]])
-    stock_data[["MA_10", "MA_50", "Volatility", "Daily Return"]] = scaler.fit_transform(
-        stock_data[["MA_10", "MA_50", "Volatility", "Daily Return"]]
-    )
-    stock_data[["RSI", "upper_band", "middle_band", "lower_band"]] = (
-        scaler.fit_transform(
-            stock_data[["RSI", "upper_band", "middle_band", "lower_band"]]
-        )
+    stock_data[
+        [
+            "MA_10",
+            "MA_50",
+            "Volatility",
+            "Daily Return",
+            "RSI",
+            "upper_band",
+            "middle_band",
+            "lower_band",
+            "MACD",
+            "MACD_Signal",
+            "MACD_Diff",
+            "Stoch_K",
+            "Stoch_D",
+        ]
+    ] = scaler.fit_transform(
+        stock_data[
+            [
+                "MA_10",
+                "MA_50",
+                "Volatility",
+                "Daily Return",
+                "RSI",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "MACD",
+                "MACD_Signal",
+                "MACD_Diff",
+                "Stoch_K",
+                "Stoch_D",
+            ]
+        ]
     )
     return stock_data
 
@@ -200,10 +242,13 @@ if __name__ == "__main__":
 
         # Pre-process stock data
         preprocessed_stock_data = preprocess_stock_data(stock_data)
-        path = f"June_30_preprocessed_stock_data_{ticker}.csv"
-        # preprocessed_stock_data.to_csv(path, index=True)
         print(f"\nPre-processed data ({ticker}):\n")
         print(preprocessed_stock_data.head())
+
+        # Save pre-processed stock data to CSV
+        path = f"June_30_preprocessed_stock_data_{ticker}.csv"
+        preprocessed_stock_data.to_csv(path, index=True)
+        print("Pre-processed stock data saved to CSV.\n")
 
         # Fetch options data
         options_data = fetch_options_data(ticker)
@@ -214,15 +259,17 @@ if __name__ == "__main__":
 
         # Pre-process options data
         preprocessed_options_data = preprocess_options_data(options_data)
-
         print("\nCall options data (pre-processed):\n")
         print(preprocessed_options_data.calls.head())
-        path = f"June_30_preprocessed_calls_data_{ticker}.csv"
-        # preprocessed_options_data.calls.to_csv(path, index=True)
         print("\nPut options data (pre-processed):\n")
         print(preprocessed_options_data.puts.head())
+
+        # Save pre-processed options data to CSV
+        path = f"June_30_preprocessed_calls_data_{ticker}.csv"
+        preprocessed_options_data.calls.to_csv(path, index=True)
         path = f"June_30_preprocessed_puts_data_{ticker}.csv"
-        # preprocessed_options_data.puts.to_csv(path, index=True)
+        preprocessed_options_data.puts.to_csv(path, index=True)
+        print("Pre-process options data saved to CSV.\n")
 
         # Perform exploratory data analysis
         perform_eda(ticker, preprocessed_stock_data, preprocessed_options_data)
