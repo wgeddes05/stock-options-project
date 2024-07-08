@@ -1,5 +1,6 @@
 import os
-import talib as ta
+import ta
+import talib
 import pandas as pd
 import yfinance as yf
 from matplotlib import pyplot as plt
@@ -35,7 +36,7 @@ def preprocess_stock_data(stock_data):
     stock_data["MA_50"] = stock_data["Close"].rolling(window=50).mean()
     stock_data["Volatility"] = stock_data["Close"].rolling(window=10).std()
     stock_data["Daily Return"] = stock_data["Close"].pct_change()
-    stock_data["RSI"] = ta.RSI(stock_data["Close"].values, timeperiod=14)
+    stock_data["RSI"] = talib.RSI(stock_data["Close"].values, timeperiod=14)
 
     # Bollinger bands
     bb_indicator = ta.volatility.BollingerBands(stock_data["Close"], window=20)
@@ -55,8 +56,8 @@ def preprocess_stock_data(stock_data):
     stoch = ta.momentum.StochasticOscillator(
         stock_data["High"], stock_data["Low"], stock_data["Close"], window=14
     )
-    stock_data["Stoch %K"] = stoch.stoch()
-    stock_data["Stoch %D"] = stoch.stoch_signal()
+    stock_data["Stoch_K"] = stoch.stoch()
+    stock_data["Stoch_D"] = stoch.stoch_signal()
 
     # Drop remaining missing values
     stock_data = stock_data.dropna()
@@ -75,7 +76,7 @@ def preprocess_stock_data(stock_data):
             "lower_band",
             "MACD",
             "MACD_Signal",
-            "MACD_Diff",
+            "MACD_Histogram",
             "Stoch_K",
             "Stoch_D",
         ]
@@ -92,7 +93,7 @@ def preprocess_stock_data(stock_data):
                 "lower_band",
                 "MACD",
                 "MACD_Signal",
-                "MACD_Diff",
+                "MACD_Histogram",
                 "Stoch_K",
                 "Stoch_D",
             ]
@@ -269,7 +270,7 @@ if __name__ == "__main__":
         preprocessed_options_data.calls.to_csv(path, index=True)
         path = f"June_30_preprocessed_puts_data_{ticker}.csv"
         preprocessed_options_data.puts.to_csv(path, index=True)
-        print("Pre-process options data saved to CSV.\n")
+        print("Pre-processed options data saved to CSV.\n")
 
         # Perform exploratory data analysis
         perform_eda(ticker, preprocessed_stock_data, preprocessed_options_data)
