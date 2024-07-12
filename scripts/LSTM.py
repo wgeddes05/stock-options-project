@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import functions as f
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from keras.models import Sequential
@@ -71,3 +73,45 @@ def evaluate_LSTM_model(model, X_test, y_test, scaler):
     print(f"R-squared Score: {r2}")
 
     return mse, mae, r2
+
+
+if __name__ == "__main__":
+    os.chdir(r"C:\Users\wgedd\Documents\GitHub\stock-options-project\data")
+
+    start_date = "2021-01-01"
+    end_date = "2024-06-30"
+
+    tickers = ["AAPL", "GME"]
+
+    for ticker in tickers:
+        print(f"Processing {ticker}...")
+
+        stock_data = f.fetch_stock_data(ticker, start_date, end_date)
+        print("\nRaw stock data:")
+        print(stock_data.head())
+
+        preprocessed_stock_data = f.preprocess_stock_data(stock_data)
+        print("\nPreprocessed stock data:")
+        print(preprocessed_stock_data.head())
+
+        options_data = f.fetch_options_data(ticker)
+        print("\nRaw call options data:")
+        print(options_data.calls.head())
+        print("\nRaw put options data:")
+        print(options_data.puts.head())
+
+        preprocessed_options_data = f.preprocess_options_data(options_data)
+        print("\nPre-processed call options data:")
+        print(preprocessed_options_data.calls.head())
+        print("\nPre-processed put options data:")
+        print(preprocessed_options_data.puts.head())
+
+        X_train, X_test, y_train, y_test = prepare_LTSM_data(preprocessed_stock_data)
+
+        input_shape = (X_train.shape[1], X_train.shape[2])
+        LSTM_model = build_LSTM_model(input_shape)
+
+        # train_LSTM_model(X_train, y_train)
+        LSTM_model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.1)
+
+        evaluate_LSTM_model(LSTM_model, X_test, y_test, MinMaxScaler())
