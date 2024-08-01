@@ -2,13 +2,15 @@ import os
 import numpy as np
 import pandas as pd
 import functions as f
+from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import TimeSeriesSplit
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 
 
-def prepare_LTSM_data(stock_data, target_column="Open", sequence_length=50):
+def prepare_LSTM_data(stock_data, target_column="Open", sequence_length=50):
     """Prepare the data for an LSTM model."""
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(stock_data)
@@ -96,13 +98,63 @@ def evaluate_LSTM_model(model, X_test, y_test, scaler):
     return mse, mae, r2
 
 
+def time_series_cross_validation(X, y, model, num_splits=5):
+    """Perform time series cross-validation."""
+    tscv = TimeSeriesSplit(n_splits=num_splits)
+    mse_scores, mae_scores, r2_scores = [], [], []
+
+    for train_index, test_index in tscv.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        # model = train_LSTM_model(X_train, y_train)
+        # mse, mae, r2 = evaluate_LSTM_model(model, X_test, y_test, scaler)
+
+        model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.1)
+        predictions = model.predict(X_test)
+
+        mse = mean_squared_error(y_test, predictions)
+        mae = mean_absolute_error(y_test, predictions)
+        r2 = r2_score(y_test, predictions)
+
+        mse_scores.append(mse)
+        mae_scores.append(mae)
+        r2_scores.append(r2)
+
+    return np.mean(mse_scores), np.mean(mae_scores), np.mean(r2_scores)
+
+
+def simple_backtest(prices, predictions, initial_investment=5000):
+    cash = initial_investment
+    position = 0
+    portfolio_values = []
+
+    for price, predicted_next_price in zip(prices[:1], predictions[1:]):
+        if predicted_next_price > price:
+            # Buy if prediction is that the price will go up
+            if cash >= price:
+                shares_to_buy = cash // price
+                position += shares_to_buy
+                cash -= shares_to_buy * price
+        elif predicted_next_price < price:
+            # Sell if prediction is that the price will go down
+            if position > 0:
+                cash += position * price
+                position = 0
+
+        portfolio_value = cash + position * price
+        portfolio_values.append(portfolio_value)
+
+    return portfolio_values
+
+
 if __name__ == "__main__":
     os.chdir(r"C:\Users\wgedd\Documents\GitHub\stock-options-project\data")
 
     start_date = "2021-01-01"
-    end_date = "2024-06-30"
+    end_date = "2024-07-31"
 
-    tickers = ["AAPL", "GME"]
+    tickers = ["GME"]
 
     for ticker in tickers:
         print(f"Processing data for {ticker}...")
@@ -127,7 +179,7 @@ if __name__ == "__main__":
         # print("\nPre-processed put options data:")
         # print(preprocessed_options_data.puts.head())
 
-        X_train, X_test, y_train, y_test, scaler = prepare_LTSM_data(
+        X_train, X_test, y_train, y_test, scaler = prepare_LSTM_data(
             preprocessed_stock_data, target_column="Open", sequence_length=50
         )
 
@@ -136,6 +188,11 @@ if __name__ == "__main__":
         # LSTM_model = build_LSTM_model(input_shape)
         # LSTM_model = train_LSTM_model(X_train, y_train)
         # evaluate_LSTM_model(LSTM_model, X_test, y_test, MinMaxScaler())
+
+        best_MSE = float("inf")
+        best_config = None
+        best_model = None
+        best_r2 = 0
 
         layer_configurations = [
             [(50, False)],
@@ -147,7 +204,34 @@ if __name__ == "__main__":
         for config in layer_configurations:
             print(f"Training with configuration: {config}")
             LSTM_model = build_LSTM_model(input_shape, config)
-            LSTM_model.fit(
+
+            """LSTM_model.fit(
                 X_train, y_train, epochs=50, batch_size=32, validation_split=0.1
             )
-            evaluate_LSTM_model(LSTM_model, X_test, y_test, scaler)
+            evaluate_LSTM_model(LSTM_model, X_test, y_test, scaler)"""
+
+            mse, mae, r2 = time_series_cross_validation(X_train, y_train, LSTM_model)
+            print(f"CV MSE:  {mse}, MAE:  {mae}, R^2:  {r2}")
+
+            # if r2 > best_r2:
+            if mse < best_MSE:
+                best_MSE = mse
+                best_config = config
+                best_model = LSTM_model
+                best_r2 = r2
+
+        """cv_results = time_series_cross_validation()
+        for result in cv_results:
+            print(f"CV MSE: {result[0]}, MAE: {result[1]}, R^2: {result[2]}")"""
+
+        print(
+            f"Best {ticker} configuration: {best_config} w/ MSE: {best_MSE} & r^2: {best_r2}"
+        )
+
+        predictions = best_model.predict(X_test)
+        backtest_results = simple_backtest(y_test, predictions, initial_investment=5000)
+        plt.plot(backtest_results)
+        plt.title("Backtest Results")
+        plt.xlabel("Days")
+        plt.ylabel("Portfolio Value")
+        plt.show
