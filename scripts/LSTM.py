@@ -145,6 +145,11 @@ def simple_backtest(prices, predictions, initial_investment=5000):
         portfolio_value = cash + position * price
         portfolio_values.append(portfolio_value)
 
+    if portfolio_values:
+        print("Final portfolio value: ", portfolio_values[-1])
+    else:
+        print("No data.")
+
     return portfolio_values
 
 
@@ -154,7 +159,7 @@ if __name__ == "__main__":
     start_date = "2021-01-01"
     end_date = "2024-07-31"
 
-    tickers = ["GME"]
+    tickers = ["AAPL"]
 
     for ticker in tickers:
         print(f"Processing data for {ticker}...")
@@ -189,10 +194,8 @@ if __name__ == "__main__":
         # LSTM_model = train_LSTM_model(X_train, y_train)
         # evaluate_LSTM_model(LSTM_model, X_test, y_test, MinMaxScaler())
 
-        best_MSE = float("inf")
-        best_config = None
-        best_model = None
-        best_r2 = 0
+        best_r2, best_MSE = 0, float("inf")
+        best_model, best_config = None, None
 
         layer_configurations = [
             [(50, False)],
@@ -213,25 +216,36 @@ if __name__ == "__main__":
             mse, mae, r2 = time_series_cross_validation(X_train, y_train, LSTM_model)
             print(f"CV MSE:  {mse}, MAE:  {mae}, R^2:  {r2}")
 
-            # if r2 > best_r2:
-            if mse < best_MSE:
-                best_MSE = mse
-                best_config = config
-                best_model = LSTM_model
+            if r2 > best_r2:
                 best_r2 = r2
+                best_MSE = mse
+                best_model = LSTM_model
+                best_config = config
 
         """cv_results = time_series_cross_validation()
         for result in cv_results:
             print(f"CV MSE: {result[0]}, MAE: {result[1]}, R^2: {result[2]}")"""
 
-        print(
-            f"Best {ticker} configuration: {best_config} w/ MSE: {best_MSE} & r^2: {best_r2}"
-        )
+        print("y_test (prices): ", y_test)
+        print(f"Best {ticker} configuration: {best_config}")
+        print(f"Best MSE: {best_MSE} & best r^2: {best_r2}")
 
         predictions = best_model.predict(X_test)
+        print("Predictions: ", predictions)
+        predictions = best_model.predict(X_test).flatten()
+        print("Flattened predictions: ", predictions)
+
         backtest_results = simple_backtest(y_test, predictions, initial_investment=5000)
-        plt.plot(backtest_results)
+        print("Backtest results: ", backtest_results)
+        dates = list(range(len(backtest_results)))
+        print("Dates: ", dates)
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(dates, backtest_results, label="Portfolio Value")
         plt.title("Backtest Results")
         plt.xlabel("Days")
-        plt.ylabel("Portfolio Value")
-        plt.show
+        plt.ylabel("Portfolio Value ($)")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{ticker}_backtest_results.png")
+        # plt.show
